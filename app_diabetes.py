@@ -4,7 +4,7 @@ import pickle
 import numpy as np
 
 # Load model and scaler
-model = tf.keras.models.load_model("diabetes_dl_model.keras")
+model = tf.keras.models.load_model("diabetes_dl_model.keras", compile=False)
 
 scaler = pickle.load(open("scaler.pkl", "rb"))
 
@@ -128,4 +128,5 @@ if st.button("🔍 Predict Diabetes", use_container_width=True):
         """, unsafe_allow_html=True)
 
     st.progress(float(prob))
+
 
