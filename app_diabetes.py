@@ -4,7 +4,8 @@ import pickle
 import numpy as np
 
 # Load model and scaler
-model = tf.keras.models.load_model("diabetes_dl_model.h5")
+model = tf.keras.models.load_model("diabetes_dl_model.keras")
+
 scaler = pickle.load(open("scaler.pkl", "rb"))
 
 # Custom CSS for advanced UI
@@ -127,3 +128,4 @@ if st.button("🔍 Predict Diabetes", use_container_width=True):
         """, unsafe_allow_html=True)
 
     st.progress(float(prob))
+
