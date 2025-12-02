@@ -1,14 +1,13 @@
 import streamlit as st
 import tensorflow as tf
-import pickle
 import numpy as np
+import pandas as pd
+import pickle
+import os
 
-# Load model and scaler
-model = tf.keras.models.load_model("diabetes_dl_model.keras", compile=False)
-
-scaler = pickle.load(open("scaler.pkl", "rb"))
-
-# Custom CSS for advanced UI
+# -------------------------------------------------------------
+# ADVANCED UI DESIGN (CSS)
+# -------------------------------------------------------------
 st.markdown("""
     <style>
         .main-title {
@@ -47,45 +46,99 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Title
-st.markdown('<div class="main-title">🧬 Diabetes Prediction System</div>', unsafe_allow_html=True)
-st.markdown('<div class="subtitle">Enter your health details below to get prediction</div>', unsafe_allow_html=True)
-st.write("")
+# -------------------------------------------------------------
+# AUTO-TRAIN MODEL (Only first time)
+# -------------------------------------------------------------
+if not os.path.exists("diabetes_dl_model.keras"):
+    st.write("⏳ Training deep learning model for the first time...")
 
-# Feature list in order
+    # Load dataset (place your CSV in GitHub repo)
+    df = pd.read_csv("diabetes.csv")   # <-- your dataset
+
+    X = df.drop("Diabetes", axis=1)
+    y = df["Diabetes"]
+
+    # Scale features
+    from sklearn.preprocessing import StandardScaler
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+
+    # Train-test split
+    from sklearn.model_selection import train_test_split
+    X_train, X_test, y_train, y_test = train_test_split(
+        X_scaled, y, test_size=0.2, random_state=42
+    )
+
+    # Build model
+    model = tf.keras.Sequential([
+        tf.keras.layers.Input(shape=(X_train.shape[1],)),
+        tf.keras.layers.Dense(128, activation='relu'),
+        tf.keras.layers.Dense(64, activation='relu'),
+        tf.keras.layers.Dense(32, activation='relu'),
+        tf.keras.layers.Dense(1, activation='sigmoid')
+    ])
+
+    model.compile(
+        optimizer='adam',
+        loss='binary_crossentropy',
+        metrics=['accuracy']
+    )
+
+    # Train
+    model.fit(X_train, y_train, epochs=20, batch_size=32, verbose=0)
+
+    # Save model + scaler
+    model.save("diabetes_dl_model.keras")
+    pickle.dump(scaler, open("scaler.pkl", "wb"))
+
+    st.success("🎉 Model trained and saved successfully!")
+
+# -------------------------------------------------------------
+# LOAD MODEL & SCALER
+# -------------------------------------------------------------
+model = tf.keras.models.load_model("diabetes_dl_model.keras", compile=False)
+scaler = pickle.load(open("scaler.pkl", "rb"))
+
+# -------------------------------------------------------------
+# FEATURE LIST
+# -------------------------------------------------------------
 feature_list = [
-    "HighBP","HighChol","CholCheck","BMI","Smoker","Stroke","HeartDiseaseorAttack",
-    "PhysActivity","Fruits","Veggies","HvyAlcoholConsump","AnyHealthcare",
-    "NoDocbcCost","GenHlth","MentHlth","PhysHlth","DiffWalk","Sex",
-    "Age","Education","Income"
+    "HighBP","HighChol","CholCheck","BMI","Smoker","Stroke",
+    "HeartDiseaseorAttack","PhysActivity","Fruits","Veggies",
+    "HvyAlcoholConsump","AnyHealthcare","NoDocbcCost","GenHlth",
+    "MentHlth","PhysHlth","DiffWalk","Sex","Age","Education","Income"
 ]
 
-# UI Labels
 ui_labels = {
     "HighBP": "High Blood Pressure",
     "HighChol": "High Cholesterol",
     "CholCheck": "Cholesterol Check Recently",
-    "BMI": "Body Mass Index (BMI)",
-    "Smoker": "Smoking Habit",
-    "Stroke": "History of Stroke",
-    "HeartDiseaseorAttack": "Heart Disease / Attack",
+    "BMI": "Body Mass Index",
+    "Smoker": "Smoker",
+    "Stroke": "Stroke History",
+    "HeartDiseaseorAttack": "Heart Disease/Attack",
     "PhysActivity": "Physical Activity",
     "Fruits": "Fruit Consumption",
     "Veggies": "Vegetable Consumption",
     "HvyAlcoholConsump": "Heavy Alcohol Use",
     "AnyHealthcare": "Has Health Insurance",
     "NoDocbcCost": "Avoided Doctor Visit (Cost)",
-    "GenHlth": "General Health Rating (1=Excellent → 5=Poor)",
+    "GenHlth": "General Health (1–5)",
     "MentHlth": "Bad Mental Health Days (0–30)",
     "PhysHlth": "Bad Physical Health Days (0–30)",
     "DiffWalk": "Difficulty Walking",
     "Sex": "Gender (1=Male, 0=Female)",
-    "Age": "Age Group Category (1–13)",
-    "Education": "Education Level (1–6)",
-    "Income": "Income Level (1–8)"
+    "Age": "Age Group Category",
+    "Education": "Education Level",
+    "Income": "Income Level"
 }
 
-# Two-column advanced layout
+# -------------------------------------------------------------
+# ADVANCED UI
+# -------------------------------------------------------------
+st.markdown('<div class="main-title">🧬 Diabetes Prediction System</div>', unsafe_allow_html=True)
+st.markdown('<div class="subtitle">Enter your details below</div>', unsafe_allow_html=True)
+
 col1, col2 = st.columns(2)
 inputs = []
 
@@ -94,39 +147,40 @@ for i, feature in enumerate(feature_list):
 
     if i < len(feature_list)/2:
         with col1:
-            val = st.number_input(f"**{label}**", min_value=0.0, step=1.0, key=f"{feature}_{i}")
+            val = st.number_input(f"**{label}**", min_value=0.0, step=1.0)
     else:
         with col2:
-            val = st.number_input(f"**{label}**", min_value=0.0, step=1.0, key=f"{feature}_{i}")
+            val = st.number_input(f"**{label}**", min_value=0.0, step=1.0)
 
     inputs.append(val)
 
-st.write("")
-st.write("")
-
-# Prediction button
+# -------------------------------------------------------------
+# PREDICTION
+# -------------------------------------------------------------
 if st.button("🔍 Predict Diabetes", use_container_width=True):
     x = np.array([inputs])
     x_scaled = scaler.transform(x)
     prob = model.predict(x_scaled)[0][0]
 
     st.write("### Prediction Result")
-    
+
     if prob > 0.5:
         st.markdown(f"""
             <div class="result-box error-box">
                 🔴 Diabetes Risk Detected  
-                <br>Probability Score: {prob:.4f}
+                <br>Probability: {prob:.4f}
             </div>
         """, unsafe_allow_html=True)
     else:
         st.markdown(f"""
             <div class="result-box success-box">
                 🟢 No Diabetes Risk  
-                <br>Probability Score: {prob:.4f}
+                <br>Probability: {prob:.4f}
             </div>
         """, unsafe_allow_html=True)
 
     st.progress(float(prob))
+
+
 
 
