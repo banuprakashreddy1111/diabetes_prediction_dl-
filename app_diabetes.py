@@ -3,67 +3,127 @@ import tensorflow as tf
 import pickle
 import numpy as np
 
-# Load the trained model and scaler
+# Load model and scaler
 model = tf.keras.models.load_model("diabetes_dl_model.h5")
-scaler = pickle.load(open("scaler.pkl","rb"))
+scaler = pickle.load(open("scaler.pkl", "rb"))
 
-# List of features used for prediction
+# Custom CSS for advanced UI
+st.markdown("""
+    <style>
+        .main-title {
+            font-size: 38px;
+            font-weight: bold;
+            text-align: center;
+            color: #4bb3fd;
+            text-shadow: 1px 1px 3px #00000030;
+            margin-bottom: 20px;
+        }
+        .subtitle {
+            font-size: 20px;
+            text-align: center;
+            color: #ffffff;
+            background-color: #4bb3fd;
+            padding: 10px;
+            border-radius: 10px;
+        }
+        .result-box {
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 22px;
+            font-weight: bold;
+        }
+        .success-box {
+            background-color: #e3ffe6;
+            color: #008a1e;
+            border-left: 8px solid #008a1e;
+        }
+        .error-box {
+            background-color: #ffe6e6;
+            color: #b80000;
+            border-left: 8px solid #b80000;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
+# Title
+st.markdown('<div class="main-title">🧬 Diabetes Prediction System</div>', unsafe_allow_html=True)
+st.markdown('<div class="subtitle">Enter your health details below to get prediction</div>', unsafe_allow_html=True)
+st.write("")
+
+# Feature list in order
 feature_list = [
-    'HighBP', 'HighChol', 'CholCheck', 'BMI', 'Smoker',
-    'Stroke', 'HeartDiseaseorAttack', 'PhysActivity', 'Fruits', 'Veggies',
-    'HvyAlcoholConsump', 'AnyHealthcare', 'NoDocbcCost', 'GenHlth',
-    'MentHlth', 'PhysHlth', 'DiffWalk', 'Sex', 'Age', 'Education',
-    'Income'
+    "HighBP","HighChol","CholCheck","BMI","Smoker","Stroke","HeartDiseaseorAttack",
+    "PhysActivity","Fruits","Veggies","HvyAlcoholConsump","AnyHealthcare",
+    "NoDocbcCost","GenHlth","MentHlth","PhysHlth","DiffWalk","Sex",
+    "Age","Education","Income"
 ]
 
-# Clear UI labels with full forms
+# UI Labels
 ui_labels = {
-    "HighBP": "High Blood Pressure (1 = Yes, 0 = No)",
-    "HighChol": "High Cholesterol (1 = Yes, 0 = No)",
-    "CholCheck": "Cholesterol Check Done Recently (1 = Yes, 0 = No)",
-    "BMI": "Body Mass Index (BMI) Value (Example: 24.5, 30.2, 36.4 etc.)",
-    "Smoker": "Smoking Habit (1 = Smoker, 0 = Non-Smoker)",
-    "Stroke": "History of Stroke (1 = Yes, 0 = No)",
-    "HeartDiseaseorAttack": "Heart Disease or Heart Attack History (1 = Yes, 0 = No)",
-    "PhysActivity": "Does Regular Exercise / Physical Activity (1 = Yes, 0 = No)",
-    "Fruits": "Consumes Fruits Regularly (1 = Daily/Often, 0 = Rarely/Never)",
-    "Veggies": "Consumes Vegetables Regularly (1 = Daily/Often, 0 = Rarely/Never)",
-    "HvyAlcoholConsump": "Heavy Alcohol Consumption Habit (1 = Yes, 0 = No)",
-    "AnyHealthcare": "Has Medical Insurance / Healthcare Access (1 = Yes, 0 = No)",
-    "NoDocbcCost": "Avoided Doctor Visit Due to Cost (1 = Yes, 0 = No)",
-    "GenHlth": "General Health Rating (1 = Excellent → 5 = Very Poor)",
-    "MentHlth": "Mental Health Affected Days in last 30 days (0-30)",
-    "PhysHlth": "Physical Health Affected Days in last 30 days (0-30)",
-    "DiffWalk": "Difficulty in Walking or Climbing Stairs (1 = Yes, 0 = No)",
-    "Sex": "Gender (1 = Male, 0 = Female)",
-    "Age": "Age Group Category (Higher number = older age group)",
-    "Education": "Education Level (1 = Low → 6 = Highest Education)",
-    "Income": "Income Level Category (1 = Low → 8 = High Income)"
+    "HighBP": "High Blood Pressure",
+    "HighChol": "High Cholesterol",
+    "CholCheck": "Cholesterol Check Recently",
+    "BMI": "Body Mass Index (BMI)",
+    "Smoker": "Smoking Habit",
+    "Stroke": "History of Stroke",
+    "HeartDiseaseorAttack": "Heart Disease / Attack",
+    "PhysActivity": "Physical Activity",
+    "Fruits": "Fruit Consumption",
+    "Veggies": "Vegetable Consumption",
+    "HvyAlcoholConsump": "Heavy Alcohol Use",
+    "AnyHealthcare": "Has Health Insurance",
+    "NoDocbcCost": "Avoided Doctor Visit (Cost)",
+    "GenHlth": "General Health Rating (1=Excellent → 5=Poor)",
+    "MentHlth": "Bad Mental Health Days (0–30)",
+    "PhysHlth": "Bad Physical Health Days (0–30)",
+    "DiffWalk": "Difficulty Walking",
+    "Sex": "Gender (1=Male, 0=Female)",
+    "Age": "Age Group Category (1–13)",
+    "Education": "Education Level (1–6)",
+    "Income": "Income Level (1–8)"
 }
 
-# UI
-st.title("🧬 Diabetes Risk Prediction App")
-st.markdown("### Fill patient details below ")
-
+# Two-column advanced layout
+col1, col2 = st.columns(2)
 inputs = []
+
 for i, feature in enumerate(feature_list):
-    st.markdown(f"**{ui_labels.get(feature, feature)}**")
-    v = st.number_input(" ", 0.0, key=f"{feature}_{i}")
-    inputs.append(v)
+    label = ui_labels[feature]
 
-# Predict button
-if st.button("Predict Diabetes"):
+    if i < len(feature_list)/2:
+        with col1:
+            val = st.number_input(f"**{label}**", min_value=0.0, step=1.0, key=f"{feature}_{i}")
+    else:
+        with col2:
+            val = st.number_input(f"**{label}**", min_value=0.0, step=1.0, key=f"{feature}_{i}")
+
+    inputs.append(val)
+
+st.write("")
+st.write("")
+
+# Prediction button
+if st.button("🔍 Predict Diabetes", use_container_width=True):
     x = np.array([inputs])
-    try:
-        x = scaler.transform(x)
-        p = model.predict(x)[0][0]
+    x_scaled = scaler.transform(x)
+    prob = model.predict(x_scaled)[0][0]
 
-        if p > 0.5:
-            st.error("🔴 **Diabetes Risk Detected!**")
-        else:
-            st.success("🟢 **No Diabetes Risk**")
+    st.write("### Prediction Result")
+    
+    if prob > 0.5:
+        st.markdown(f"""
+            <div class="result-box error-box">
+                🔴 Diabetes Risk Detected  
+                <br>Probability Score: {prob:.4f}
+            </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown(f"""
+            <div class="result-box success-box">
+                🟢 No Diabetes Risk  
+                <br>Probability Score: {prob:.4f}
+            </div>
+        """, unsafe_allow_html=True)
 
-        st.write("**Probability Score:**", round(p, 4))
-
-    except Exception as e:
-        st.write("⚠ Error during prediction:", e)
+    st.progress(float(prob))
