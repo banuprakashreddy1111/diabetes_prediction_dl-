@@ -115,8 +115,6 @@ st.markdown(
     """
     <div class='hero'>
         <h1>🧬 Diabetes Prediction System</h1>
-        <p style="color:#6b7280; font-size:16px">Premium health risk estimation using machine learning</p>
-    </div>
     """,
     unsafe_allow_html=True,
 )
@@ -254,3 +252,4 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
+
